@@ -67,9 +67,31 @@ const addOns = <Map<String, dynamic>>[
   {'id': 'molho', 'name': 'Molho da casa extra', 'price': 2.00},
 ];
 
+const _burgerAddOns = [
+  'extra-burger', 'cheddar', 'bacon', 'queijo', 'cebola', 'ovo', 'molho',
+];
+
+const _defaultAddOns = {
+  'brasa-classico': _burgerAddOns,
+  'duplo-defumado': _burgerAddOns,
+  'cheddar-crocante': _burgerAddOns,
+  'frango-crocante': ['cheddar', 'bacon', 'queijo', 'cebola', 'ovo', 'molho'],
+  'combo-brasa': _burgerAddOns,
+  'combo-duplo': _burgerAddOns,
+  'fritas-rusticas': ['cheddar', 'bacon', 'molho'],
+  'onion-rings': ['molho'],
+  'frango-frito': ['molho'],
+};
+
+List<String> allowedAddOnIds(String productId) =>
+    _defaultAddOns[productId] ?? const [];
+
 Map<String, dynamic> get menuResponse => {
   'categories': ['Todos', 'Burgers', 'Combos', 'Acompanhamentos', 'Bebidas', 'Sobremesas'],
-  'products': products,
+  'products': [
+    for (final product in products)
+      {...product, 'allowedAddOnIds': allowedAddOnIds(product['id'] as String)},
+  ],
   'addOns': addOns,
   'coupons': [
     {'code': 'BRASA10', 'discountPercent': 10, 'description': '10% de desconto no pedido'},

@@ -8,6 +8,7 @@ class Product {
     required this.image,
     this.badge,
     this.isFeatured = false,
+    this.allowedAddOnIds = const [],
   });
 
   final String id;
@@ -18,6 +19,7 @@ class Product {
   final String image;
   final String? badge;
   final bool isFeatured;
+  final List<String> allowedAddOnIds;
 
   factory Product.fromMap(Map<String, dynamic> map) => Product(
         id: map['id'] as String,
@@ -28,6 +30,9 @@ class Product {
         image: map['image'] as String? ?? '',
         badge: map['badge'] as String?,
         isFeatured: map['isFeatured'] as bool? ?? false,
+        allowedAddOnIds:
+            (map['allowedAddOnIds'] as List?)?.whereType<String>().toList() ??
+                const [],
       );
 }
 

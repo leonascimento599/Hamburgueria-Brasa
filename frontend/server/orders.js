@@ -30,9 +30,12 @@ export function calculateOrder(input, menu) {
       throw new InvalidOrder('Produto ou quantidade inválida.');
     }
     if (!Array.isArray(item.extras)) throw new InvalidOrder('Adicionais inválidos.');
+    const allowedIds = new Set(product.allowedAddOnIds);
     const selectedExtras = item.extras.map(id => {
       const extra = extras.get(id);
-      if (!extra) throw new InvalidOrder('Adicional não encontrado.');
+      if (!extra || !allowedIds.has(id)) {
+        throw new InvalidOrder('Adicional indisponível para ' + product.name + '.');
+      }
       return extra;
     });
     const unitPrice = selectedExtras.reduce((sum, extra) => sum + cents(extra.price), cents(product.price));

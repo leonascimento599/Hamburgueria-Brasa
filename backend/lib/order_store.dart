@@ -38,14 +38,18 @@ class OrderStore {
       final product = productsById[productId];
       if (product == null)
         throw const FormatException('Produto não encontrado no cardápio.');
+      final allowedIds = allowedAddOnIds(productId);
       final extrasRaw = rawItem['extras'];
       if (extrasRaw is! List)
         throw const FormatException('Adicionais inválidos.');
       final selectedExtras = <Map<String, dynamic>>[];
       var extrasPrice = 0.0;
       for (final extraId in extrasRaw) {
-        if (extraId is! String || !extrasById.containsKey(extraId)) {
-          throw const FormatException('Adicional não encontrado.');
+        if (extraId is! String ||
+            !allowedIds.contains(extraId) ||
+            !extrasById.containsKey(extraId)) {
+          throw const FormatException(
+              'Adicional indisponível para esse produto.');
         }
         final extra = extrasById[extraId]!;
         selectedExtras.add(extra);

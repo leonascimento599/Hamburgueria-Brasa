@@ -84,6 +84,11 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _customize(Product product) async {
+    final availableExtras = catalog!.addOns
+        .where((extra) => product.allowedAddOnIds.contains(extra.id))
+        .toList();
+    final canRemoveIngredients =
+        product.category == 'Burgers' || product.category == 'Combos';
     final chosenExtras = <Extra>{};
     final removed = <String>{};
     int quantity = 1;
@@ -130,56 +135,61 @@ class _HomePageState extends State<HomePage> {
                     ]),
                     Text(product.description,
                         style: const TextStyle(color: _muted, height: 1.45)),
-                    const SizedBox(height: 20),
-                    const _SectionLabel(
-                        title: 'Turbine seu burger',
-                        subtitle: 'Escolha os adicionais que vão junto.'),
-                    const SizedBox(height: 8),
-                    ...catalog!.addOns.map((extra) => CheckboxListTile(
-                          value: chosenExtras.contains(extra),
-                          onChanged: (checked) => setModalState(() {
-                            if (checked == true) {
-                              chosenExtras.add(extra);
-                            } else {
-                              chosenExtras.remove(extra);
-                            }
-                          }),
-                          dense: true,
-                          contentPadding: EdgeInsets.zero,
-                          activeColor: _ember,
-                          title: Text(extra.name,
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w600)),
-                          secondary: Text('+ ${money(extra.price)}',
-                              style: const TextStyle(
-                                  color: _ember, fontWeight: FontWeight.w700)),
-                          controlAffinity: ListTileControlAffinity.leading,
-                        )),
-                    const Divider(height: 26),
-                    const _SectionLabel(
-                        title: 'Do seu jeito',
-                        subtitle: 'Retire algum ingrediente, se preferir.'),
-                    Wrap(
-                        spacing: 8,
-                        runSpacing: 2,
-                        children: [
-                          'Sem cebola',
-                          'Sem picles',
-                          'Sem tomate',
-                          'Sem molho'
-                        ]
-                            .map((label) => FilterChip(
-                                  label: Text(label),
-                                  selected: removed.contains(label),
-                                  selectedColor: const Color(0xFFFFE3D8),
-                                  checkmarkColor: _ember,
-                                  onSelected: (selected) => setModalState(() {
-                                    selected
-                                        ? removed.add(label)
-                                        : removed.remove(label);
-                                  }),
-                                ))
-                            .toList()),
+                    if (availableExtras.isNotEmpty) ...[
+                      const SizedBox(height: 20),
+                      const _SectionLabel(
+                          title: 'Adicionais',
+                          subtitle: 'Escolha os adicionais que vão junto.'),
+                      const SizedBox(height: 8),
+                      ...availableExtras.map((extra) => CheckboxListTile(
+                            value: chosenExtras.contains(extra),
+                            onChanged: (checked) => setModalState(() {
+                              if (checked == true) {
+                                chosenExtras.add(extra);
+                              } else {
+                                chosenExtras.remove(extra);
+                              }
+                            }),
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            activeColor: _ember,
+                            title: Text(extra.name,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600)),
+                            secondary: Text('+ ${money(extra.price)}',
+                                style: const TextStyle(
+                                    color: _ember,
+                                    fontWeight: FontWeight.w700)),
+                            controlAffinity: ListTileControlAffinity.leading,
+                          )),
+                    ],
+                    if (canRemoveIngredients) ...[
+                      const Divider(height: 26),
+                      const _SectionLabel(
+                          title: 'Do seu jeito',
+                          subtitle: 'Retire algum ingrediente, se preferir.'),
+                      Wrap(
+                          spacing: 8,
+                          runSpacing: 2,
+                          children: [
+                            'Sem cebola',
+                            'Sem picles',
+                            'Sem tomate',
+                            'Sem molho'
+                          ]
+                              .map((label) => FilterChip(
+                                    label: Text(label),
+                                    selected: removed.contains(label),
+                                    selectedColor: const Color(0xFFFFE3D8),
+                                    checkmarkColor: _ember,
+                                    onSelected: (selected) => setModalState(() {
+                                      selected
+                                          ? removed.add(label)
+                                          : removed.remove(label);
+                                    }),
+                                  ))
+                              .toList()),
+                    ],
                     const SizedBox(height: 16),
                   ])),
               Container(

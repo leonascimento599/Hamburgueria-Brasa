@@ -1,5 +1,26 @@
 import { supabaseRequest } from './supabase.js';
 
+const burgerAddOns = ['extra-burger', 'cheddar', 'bacon', 'queijo', 'cebola', 'ovo', 'molho'];
+const defaultAddOns = {
+  'brasa-classico': burgerAddOns,
+  'duplo-defumado': burgerAddOns,
+  'cheddar-crocante': burgerAddOns,
+  'frango-crocante': ['cheddar', 'bacon', 'queijo', 'cebola', 'ovo', 'molho'],
+  'combo-brasa': burgerAddOns,
+  'combo-duplo': burgerAddOns,
+  'fritas-rusticas': ['cheddar', 'bacon', 'molho'],
+  'onion-rings': ['molho'],
+  'frango-frito': ['molho'],
+};
+
+function availableAddOnIds(product, activeIds) {
+  const allowed = product.allowedAddOnIds === undefined
+    ? defaultAddOns[product.id] ?? []
+    : product.allowedAddOnIds;
+  if (!Array.isArray(allowed)) return [];
+  return [...new Set(allowed.filter(id => activeIds.has(id)))];
+}
+
 async function activeRows(table) {
   const query = { select: 'data', active: 'eq.true', order: 'position.asc' };
   const rows = await supabaseRequest(table, { query });
@@ -17,7 +38,16 @@ export async function loadMenu() {
     activeRows('catalog_add_ons'),
     loadCoupons(),
   ]);
-  return { categories: ['Todos', ...categories.map(row => row.name)], products, addOns, coupons };
+  const activeIds = new Set(addOns.map(extra => extra.id));
+  return {
+    categories: ['Todos', ...categories.map(row => row.name)],
+    products: products.map(product => ({
+      ...product,
+      allowedAddOnIds: availableAddOnIds(product, activeIds),
+    })),
+    addOns,
+    coupons,
+  };
 }
 
 export function getOnly(handler) {
