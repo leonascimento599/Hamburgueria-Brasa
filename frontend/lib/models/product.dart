@@ -51,6 +51,48 @@ class CartLine {
   int quantity;
   final List<String> removedIngredients;
 
-  double get unitPrice => product.price + extras.fold<double>(0, (sum, e) => sum + e.price);
+  double get unitPrice =>
+      product.price + extras.fold<double>(0, (sum, e) => sum + e.price);
   double get total => unitPrice * quantity;
+}
+
+class Coupon {
+  const Coupon(this.code, this.description, this.discountPercent);
+
+  final String code;
+  final String description;
+  final double discountPercent;
+}
+
+class MenuCatalog {
+  const MenuCatalog(this.products, this.categories, this.addOns, this.coupons);
+
+  final List<Product> products;
+  final List<String> categories;
+  final List<Extra> addOns;
+  final List<Coupon> coupons;
+
+  factory MenuCatalog.fromMap(Map<String, dynamic> map) => MenuCatalog(
+        (map['products'] as List)
+            .cast<Map<String, dynamic>>()
+            .map(Product.fromMap)
+            .toList(),
+        (map['categories'] as List).cast<String>().toList(),
+        (map['addOns'] as List)
+            .cast<Map<String, dynamic>>()
+            .map((row) => Extra(
+                  id: row['id'] as String,
+                  name: row['name'] as String,
+                  price: (row['price'] as num).toDouble(),
+                ))
+            .toList(),
+        (map['coupons'] as List)
+            .cast<Map<String, dynamic>>()
+            .map((row) => Coupon(
+                  row['code'] as String,
+                  row['description'] as String? ?? '',
+                  (row['discountPercent'] as num).toDouble(),
+                ))
+            .toList(),
+      );
 }

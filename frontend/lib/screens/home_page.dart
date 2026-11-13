@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../data/demo_menu.dart';
+
 import '../models/product.dart';
 import '../services/api_service.dart';
 
@@ -20,13 +20,14 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  List<Product> products = demoProducts;
+  MenuCatalog? catalog;
+  List<Product> get products => catalog?.products ?? const [];
   final List<CartLine> cart = [];
   final Set<String> favorites = {};
   final ScrollController _scrollController = ScrollController();
   String selectedCategory = 'Todos';
   String search = '';
-  String? appliedCoupon;
+  Coupon? appliedCoupon;
   bool? apiAvailable;
 
   @override
@@ -42,11 +43,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadMenu() async {
+    setState(() => apiAvailable = null);
     try {
-      final remoteProducts = await ApiService.fetchMenu();
+      final loadedCatalog = await ApiService.fetchMenu();
       if (!mounted) return;
       setState(() {
-        products = remoteProducts;
+        catalog = loadedCatalog;
         apiAvailable = true;
       });
     } catch (_) {
@@ -66,7 +68,8 @@ class _HomePageState extends State<HomePage> {
       }).toList();
 
   double get subtotal => cart.fold<double>(0, (sum, item) => sum + item.total);
-  double get discount => appliedCoupon == 'BRASA10' ? subtotal * .10 : 0;
+  double get discount =>
+      (subtotal * (appliedCoupon?.discountPercent ?? 0)).round() / 100;
   double get deliveryFee => subtotal >= 65 ? 0 : 6.90;
   double get total => subtotal - discount + (cart.isEmpty ? 0 : deliveryFee);
   int get itemCount => cart.fold<int>(0, (sum, item) => sum + item.quantity);
@@ -132,7 +135,7 @@ class _HomePageState extends State<HomePage> {
                         title: 'Turbine seu burger',
                         subtitle: 'Escolha os adicionais que vão junto.'),
                     const SizedBox(height: 8),
-                    ...extraChoices.map((extra) => CheckboxListTile(
+                    ...catalog!.addOns.map((extra) => CheckboxListTile(
                           value: chosenExtras.contains(extra),
                           onChanged: (checked) => setModalState(() {
                             if (checked == true) {
@@ -263,6 +266,7 @@ class _HomePageState extends State<HomePage> {
                 deliveryFee: deliveryFee,
                 total: total,
                 coupon: appliedCoupon,
+                coupons: catalog?.coupons ?? const [],
                 onQuantity: (line, delta) {
                   _changeQuantity(line, delta);
                   setSheetState(() {});
@@ -271,9 +275,8 @@ class _HomePageState extends State<HomePage> {
                   setState(() => cart.remove(line));
                   setSheetState(() {});
                 },
-                onCoupon: () {
-                  setState(() => appliedCoupon =
-                      appliedCoupon == 'BRASA10' ? null : 'BRASA10');
+                onCoupon: (coupon) {
+                  setState(() => appliedCoupon = coupon);
                   setSheetState(() {});
                 },
                 onCheckout: () {
@@ -295,7 +298,7 @@ class _HomePageState extends State<HomePage> {
         address: checkout.address,
         paymentMethod: checkout.payment,
         items: List<CartLine>.from(cart),
-        coupon: appliedCoupon,
+        coupon: appliedCoupon?.code,
       );
       if (!mounted) return;
       final orderId = response['id'] as String;
@@ -352,9 +355,6 @@ class _HomePageState extends State<HomePage> {
                                 : 'Feito na brasa. Entregue com carinho.',
                             style: const TextStyle(
                                 fontWeight: FontWeight.w700, color: _ink))),
-                    if (apiAvailable == false)
-                      const Text('Modo demonstração',
-                          style: TextStyle(fontSize: 11, color: _muted)),
                   ]))),
         )),
         SliverToBoxAdapter(
@@ -366,6 +366,7 @@ class _HomePageState extends State<HomePage> {
               child: _SearchAndCategories(
                 onSearch: (value) => setState(() => search = value),
                 selected: selectedCategory,
+                categories: catalog?.categories ?? const [],
                 onCategory: (value) => setState(() => selectedCategory = value),
               )),
         ))),
@@ -384,7 +385,19 @@ class _HomePageState extends State<HomePage> {
                     : 'Escolha o seu favorito e personalize do seu jeito.',
               )),
         ))),
-        if (visibleProducts.isEmpty)
+        if (apiAvailable == null)
+          const SliverToBoxAdapter(
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (apiAvailable == false)
+          SliverToBoxAdapter(
+            child: Column(children: [
+              const Text('Não foi possível carregar o cardápio.'),
+              TextButton(
+                  onPressed: _loadMenu, child: const Text('Tentar novamente')),
+            ]),
+          )
+        else if (visibleProducts.isEmpty)
           const SliverToBoxAdapter(
               child: Padding(
                   padding: EdgeInsets.all(50),
@@ -650,9 +663,11 @@ class _SearchAndCategories extends StatelessWidget {
   const _SearchAndCategories(
       {required this.onSearch,
       required this.selected,
+      required this.categories,
       required this.onCategory});
   final ValueChanged<String> onSearch;
   final String selected;
+  final List<String> categories;
   final ValueChanged<String> onCategory;
   @override
   Widget build(BuildContext context) =>
@@ -1023,6 +1038,7 @@ class _CartSheet extends StatelessWidget {
     required this.deliveryFee,
     required this.total,
     required this.coupon,
+    required this.coupons,
     required this.onQuantity,
     required this.onRemove,
     required this.onCoupon,
@@ -1030,10 +1046,11 @@ class _CartSheet extends StatelessWidget {
   });
   final List<CartLine> cart;
   final double subtotal, discount, deliveryFee, total;
-  final String? coupon;
+  final Coupon? coupon;
+  final List<Coupon> coupons;
   final void Function(CartLine, int) onQuantity;
   final ValueChanged<CartLine> onRemove;
-  final VoidCallback onCoupon;
+  final ValueChanged<Coupon?> onCoupon;
   final VoidCallback onCheckout;
   @override
   Widget build(BuildContext context) => DraggableScrollableSheet(
@@ -1133,23 +1150,28 @@ class _CartSheet extends StatelessWidget {
                     color: Colors.white,
                     border: Border(top: BorderSide(color: _line))),
                 child: Column(children: [
-                  Row(children: [
-                    const Icon(Icons.local_offer_outlined,
-                        color: _ember, size: 18),
-                    const SizedBox(width: 7),
-                    const Expanded(
-                        child: Text('Cupom BRASA10 • 10% de desconto',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w700, fontSize: 12))),
-                    TextButton(
-                        onPressed: onCoupon,
-                        child:
-                            Text(coupon == 'BRASA10' ? 'Remover' : 'Aplicar'))
-                  ]),
+                  if (coupons.isNotEmpty)
+                    DropdownButton<Coupon>(
+                      isExpanded: true,
+                      value: coupon,
+                      hint: const Text('Selecionar cupom'),
+                      items: [
+                        const DropdownMenuItem<Coupon>(
+                            child: Text('Sem cupom')),
+                        for (final option in coupons)
+                          DropdownMenuItem(
+                            value: option,
+                            child: Text(option.description.isEmpty
+                                ? option.code
+                                : '${option.code} • ${option.description}'),
+                          ),
+                      ],
+                      onChanged: onCoupon,
+                    ),
                   _PriceRow(label: 'Subtotal', value: money(subtotal)),
                   if (discount > 0)
                     _PriceRow(
-                        label: 'Desconto BRASA10',
+                        label: 'Desconto ${coupon?.code ?? ''}',
                         value: '- ${money(discount)}',
                         color: const Color(0xFF218653)),
                   _PriceRow(

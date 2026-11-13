@@ -72,6 +72,6 @@ Map<String, dynamic> get menuResponse => {
   'products': products,
   'addOns': addOns,
   'coupons': [
-    {'code': 'BRASA10', 'description': '10% de desconto no pedido'},
+    {'code': 'BRASA10', 'discountPercent': 10, 'description': '10% de desconto no pedido'},
   ],
 };
