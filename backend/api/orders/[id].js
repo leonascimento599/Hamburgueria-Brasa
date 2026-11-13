@@ -5,8 +5,9 @@ export default {
     if (request.method !== 'GET') {
       return orderResponse({ error: 'Use GET para consultar um pedido.' }, 405, { Allow: 'GET' });
     }
-    const pathname = new URL(request.url).pathname.replace(/\/$/, '');
-    const id = pathname.split('/').at(-1).toUpperCase();
+    const url = new URL(request.url);
+    const pathname = url.pathname.replace(/\/$/, '');
+    const id = (url.searchParams.get('orderId') ?? pathname.split('/').at(-1)).toUpperCase();
     if (!/^BP-(?:[A-F0-9]{6}|[A-F0-9]{16})$/.test(id)) {
       return orderResponse({ error: 'Pedido não encontrado.' }, 404);
     }

@@ -15,5 +15,26 @@
       "src": "api/orders/*.js",
       "use": "@vercel/node"
     }
+  ],
+  "routes": [
+    {
+      "src": "/api/menu/?$",
+      "dest": "/api/menu.js"
+    },
+    {
+      "src": "/api/coupons/?$",
+      "dest": "/api/coupons.js"
+    },
+    {
+      "src": "/api/orders/?$",
+      "dest": "/api/orders/index.js"
+    },
+    {
+      "src": "/api/orders/(BP-(?:[A-Fa-f0-9]{6}|[A-Fa-f0-9]{16}))/?$",
+      "dest": "/api/orders/[id].js?orderId=$1"
+    },
+    {
+      "handle": "filesystem"
+    }
   ]
 }
