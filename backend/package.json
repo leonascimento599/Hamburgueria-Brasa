@@ -2,6 +2,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "vercel-build": "git clone --depth 1 --branch stable https://github.com/flutter/flutter.git /tmp/flutter && (cd ../frontend && /tmp/flutter/bin/flutter build web --release --dart-define=API_BASE_URL=/api) && mkdir -p public && cp -R ../frontend/build/web/. public/"
+    "vercel-build": "if [ ! -f public/flutter_bootstrap.js ]; then FLUTTER_SDK=\"$(mktemp -d)\" && git clone --depth 1 --branch stable https://github.com/flutter/flutter.git \"$FLUTTER_SDK\" && (cd ../frontend && \"$FLUTTER_SDK/bin/flutter\" build web --release --dart-define=API_BASE_URL=/api) && mkdir -p public && cp -R ../frontend/build/web/. public/; fi"
   }
 }
