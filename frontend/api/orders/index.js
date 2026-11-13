@@ -1,3 +1,4 @@
+import { loadMenu } from '../../server/catalog.js';
 import { calculateOrder, InvalidOrder, orderResponse, storedOrders, tracking } from '../../server/orders.js';
 
 export default {
@@ -12,7 +13,7 @@ export default {
       return orderResponse({ error: 'Corpo JSON inválido.' }, 400);
     }
     try {
-      const order = calculateOrder(payload);
+      const order = calculateOrder(payload, await loadMenu());
       await storedOrders({ order });
       return orderResponse(tracking(order), 201);
     } catch (error) {

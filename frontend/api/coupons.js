@@ -1,3 +1,3 @@
-import { menu, getOnly } from '../server/catalog.js';
+import { getOnly, loadCoupons } from '../server/catalog.js';
 
-export default { fetch: getOnly(() => Response.json({ coupons: menu.coupons })) };
+export default { fetch: getOnly(async () => ({ coupons: await loadCoupons() })) };

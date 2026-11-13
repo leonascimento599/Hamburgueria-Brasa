@@ -1404,6 +1404,7 @@ class _TrackingDialogState extends State<_TrackingDialog> {
   @override
   Widget build(BuildContext context) {
     final statusIndex = (order?['statusIndex'] as num?)?.toInt() ?? 0;
+    final address = order?['address'];
     final steps = [
       'Pedido recebido',
       'Preparando',
@@ -1514,11 +1515,12 @@ class _TrackingDialogState extends State<_TrackingDialog> {
                                                         : FontWeight.w500))),
                                       ])),
                           const SizedBox(height: 12),
-                          Text('Entrega em: ${order!['address']}',
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style:
-                                  const TextStyle(color: _muted, fontSize: 11)),
+                          if (address is String && address.trim().isNotEmpty)
+                            Text('Entrega em: $address',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    color: _muted, fontSize: 11)),
                           const SizedBox(height: 8),
                           const Text(
                               'Atualização automática a cada 8 segundos (modo demonstração).',

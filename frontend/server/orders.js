@@ -1,21 +1,24 @@
 import { randomBytes } from 'node:crypto';
-import { menu } from './catalog.js';
+import { supabaseRequest } from './supabase.js';
 
-const products = new Map(menu.products.map(product => [product.id, product]));
-const extras = new Map(menu.addOns.map(extra => [extra.id, extra]));
+
+
 const payments = ['Pix na entrega', 'Cartão na entrega', 'Dinheiro'];
 const cents = value => Math.round(value * 100);
 
 export class InvalidOrder extends Error {}
 
-export function calculateOrder(input) {
+export function calculateOrder(input, menu) {
+  const products = new Map(menu.products.map(product => [product.id, product]));
+  const extras = new Map(menu.addOns.map(extra => [extra.id, extra]));
   const { customerName, address, paymentMethod, items, coupon } = input ?? {};
   if (typeof customerName !== 'string' || customerName.trim().length < 2 ||
       typeof address !== 'string' || address.trim().length < 8 ||
       !payments.includes(paymentMethod) || !Array.isArray(items) || !items.length) {
     throw new InvalidOrder('Confira nome, endereço, pagamento e itens do pedido.');
   }
-  if (coupon != null && coupon !== '' && coupon !== 'BRASA10') {
+  const appliedCoupon = menu.coupons.find(entry => entry.code === coupon);
+  if (coupon != null && coupon !== '' && !appliedCoupon) {
     throw new InvalidOrder('Cupom inválido ou indisponível.');
   }
 
@@ -46,7 +49,12 @@ export function calculateOrder(input) {
     };
   });
 
-  const discount = coupon === 'BRASA10' ? Math.round(subtotal / 10) : 0;
+  const discountPercent = appliedCoupon?.discountPercent ?? 0;
+  if (typeof discountPercent !== 'number' || !Number.isFinite(discountPercent) ||
+      discountPercent < 0 || discountPercent > 100) {
+    throw new Error('Percentual do cupom inválido no catálogo.');
+  }
+  const discount = Math.round(subtotal * discountPercent / 100);
   const deliveryFee = subtotal >= 6500 ? 0 : 690;
   return {
     id: 'BP-' + randomBytes(8).toString('hex').toUpperCase(),
@@ -77,33 +85,12 @@ export function tracking(order) {
 }
 
 export async function storedOrders({ order, id }) {
-  const base = process.env.SUPABASE_URL?.trim();
-  const key = process.env.SUPABASE_SECRET_KEY?.trim();
-  if (!base || !key) throw new Error('Variáveis do Supabase ausentes.');
-  const url = new URL('/rest/v1/orders', base);
-  if (url.protocol !== 'https:') throw new Error('A URL do Supabase deve usar HTTPS.');
-  const headers = { apikey: key };
   if (order) {
-    headers['Content-Type'] = 'application/json';
-    headers.Prefer = 'return=minimal';
-  } else {
-    url.searchParams.set('id', 'eq.' + id);
-    url.searchParams.set('select', 'payload');
+    await supabaseRequest('orders', { body: { id: order.id, payload: order } });
+    return;
   }
-  const response = await fetch(url, {
-    method: order ? 'POST' : 'GET',
-    headers,
-    body: order ? JSON.stringify({ id: order.id, payload: order }) : undefined,
-    signal: AbortSignal.timeout(6500),
-    redirect: 'error',
-  });
-  if (response.status !== (order ? 201 : 200)) {
-    throw new Error('Supabase /orders: HTTP ' + response.status);
-  }
-  if (!order) {
-    const rows = await response.json();
-    return rows[0]?.payload ?? null;
-  }
+  const rows = await supabaseRequest('orders', { query: { id: 'eq.' + id, select: 'payload' } });
+  return rows[0]?.payload ?? null;
 }
 
 export function orderResponse(body, status = 200, headers = {}) {
