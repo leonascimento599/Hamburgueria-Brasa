@@ -1,60 +1,59 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'app_theme.dart';
 import 'screens/home_page.dart';
 
-void main() {
+const _darkModeKey = 'brasa.darkMode';
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const BrasaPontoApp());
+  SharedPreferencesWithCache? preferences;
+  try {
+    preferences = await SharedPreferencesWithCache.create(
+      cacheOptions:
+          const SharedPreferencesWithCacheOptions(allowList: {_darkModeKey}),
+    );
+  } catch (_) {
+    // O navegador pode bloquear o armazenamento local.
+  }
+  runApp(BrasaPontoApp(preferences: preferences));
 }
 
-class BrasaPontoApp extends StatelessWidget {
-  const BrasaPontoApp({super.key});
+class BrasaPontoApp extends StatefulWidget {
+  const BrasaPontoApp({super.key, this.preferences});
 
-  static const ink = Color(0xFF211A18);
-  static const ember = Color(0xFFC93425);
-  static const gold = Color(0xFFF6B73C);
-  static const cream = Color(0xFFFFF8EF);
+  final SharedPreferencesWithCache? preferences;
+
+  @override
+  State<BrasaPontoApp> createState() => _BrasaPontoAppState();
+}
+
+class _BrasaPontoAppState extends State<BrasaPontoApp> {
+  late ThemeMode _themeMode = switch (widget.preferences?.get(_darkModeKey)) {
+    true => ThemeMode.dark,
+    false => ThemeMode.light,
+    _ => ThemeMode.system,
+  };
+
+  Future<void> _setDarkMode(bool enabled) async {
+    setState(() => _themeMode = enabled ? ThemeMode.dark : ThemeMode.light);
+    try {
+      await widget.preferences?.setBool(_darkModeKey, enabled);
+    } catch (_) {
+      // A escolha continua valendo nesta visita se não for possível salvá-la.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Brasa & Ponto',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: cream,
-        colorScheme: ColorScheme.fromSeed(
-            seedColor: ember, primary: ember, secondary: gold, surface: cream),
-        fontFamily: 'DM Sans',
-        appBarTheme: const AppBarTheme(
-            backgroundColor: cream, foregroundColor: ink, elevation: 0),
-        textTheme: const TextTheme(
-          headlineLarge: TextStyle(
-              fontWeight: FontWeight.w800, color: ink, letterSpacing: -1.3),
-          headlineMedium: TextStyle(
-              fontWeight: FontWeight.w800, color: ink, letterSpacing: -0.8),
-          titleLarge: TextStyle(fontWeight: FontWeight.w800, color: ink),
-          titleMedium: TextStyle(fontWeight: FontWeight.w700, color: ink),
-          bodyLarge: TextStyle(color: ink),
-          bodyMedium: TextStyle(color: Color(0xFF756B64)),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-          border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide.none),
-          enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide:
-                  BorderSide(color: Colors.black.withValues(alpha: .06))),
-          focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: ember, width: 1.5)),
-        ),
-      ),
-      home: const HomePage(),
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: _themeMode,
+      home: HomePage(onDarkModeChanged: _setDarkMode),
     );
   }
 }

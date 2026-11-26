@@ -1,20 +1,21 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
+import '../app_theme.dart';
 import '../models/product.dart';
 import '../services/api_service.dart';
 
-const _ink = Color(0xFF211A18);
-const _ember = Color(0xFFC93425);
-const _gold = Color(0xFFF6B73C);
-const _muted = Color(0xFF756B64);
-const _line = Color(0xFFEDE3D8);
+extension on BuildContext {
+  ColorScheme get colors => Theme.of(this).colorScheme;
+}
 
 String money(double value) =>
     'R\$ ${value.toStringAsFixed(2).replaceAll('.', ',')}';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({super.key, required this.onDarkModeChanged});
+  final ValueChanged<bool> onDarkModeChanged;
+
   @override
   State<HomePage> createState() => _HomePageState();
 }
@@ -78,7 +79,6 @@ class _HomePageState extends State<HomePage> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message),
       behavior: SnackBarBehavior.fixed,
-      backgroundColor: _ink,
       duration: const Duration(seconds: 2),
     ));
   }
@@ -100,7 +100,6 @@ class _HomePageState extends State<HomePage> {
         final addedPrice =
             chosenExtras.fold<double>(0, (sum, extra) => sum + extra.price);
         return Dialog(
-          backgroundColor: const Color(0xFFFFFCF7),
           insetPadding: const EdgeInsets.all(18),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -125,16 +124,18 @@ class _HomePageState extends State<HomePage> {
                     Row(children: [
                       Expanded(
                           child: Text(product.name,
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontSize: 25,
                                   fontWeight: FontWeight.w800,
-                                  color: _ink))),
+                                  color: context.colors.onSurface))),
                       IconButton(
                           onPressed: () => Navigator.pop(dialogContext),
                           icon: const Icon(Icons.close)),
                     ]),
                     Text(product.description,
-                        style: const TextStyle(color: _muted, height: 1.45)),
+                        style: TextStyle(
+                            color: context.colors.onSurfaceVariant,
+                            height: 1.45)),
                     if (availableExtras.isNotEmpty) ...[
                       const SizedBox(height: 20),
                       const _SectionLabel(
@@ -152,13 +153,12 @@ class _HomePageState extends State<HomePage> {
                             }),
                             dense: true,
                             contentPadding: EdgeInsets.zero,
-                            activeColor: _ember,
                             title: Text(extra.name,
                                 style: const TextStyle(
                                     fontWeight: FontWeight.w600)),
                             secondary: Text('+ ${money(extra.price)}',
-                                style: const TextStyle(
-                                    color: _ember,
+                                style: TextStyle(
+                                    color: context.colors.primary,
                                     fontWeight: FontWeight.w700)),
                             controlAffinity: ListTileControlAffinity.leading,
                           )),
@@ -180,8 +180,10 @@ class _HomePageState extends State<HomePage> {
                               .map((label) => FilterChip(
                                     label: Text(label),
                                     selected: removed.contains(label),
-                                    selectedColor: const Color(0xFFFFE3D8),
-                                    checkmarkColor: _ember,
+                                    selectedColor:
+                                        context.colors.primaryContainer,
+                                    checkmarkColor:
+                                        context.colors.onPrimaryContainer,
                                     onSelected: (selected) => setModalState(() {
                                       selected
                                           ? removed.add(label)
@@ -194,8 +196,9 @@ class _HomePageState extends State<HomePage> {
                   ])),
               Container(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
-                decoration: const BoxDecoration(
-                    border: Border(top: BorderSide(color: _line))),
+                decoration: BoxDecoration(
+                    border: Border(
+                        top: BorderSide(color: context.colors.outlineVariant))),
                 child: Row(children: [
                   _QuantityControl(
                       value: quantity,
@@ -205,8 +208,6 @@ class _HomePageState extends State<HomePage> {
                   Expanded(
                       child: FilledButton(
                     style: FilledButton.styleFrom(
-                        backgroundColor: _ember,
-                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16)),
                     onPressed: () => Navigator.pop(
                         dialogContext,
@@ -342,7 +343,10 @@ class _HomePageState extends State<HomePage> {
       body: CustomScrollView(controller: _scrollController, slivers: [
         SliverToBoxAdapter(
             child: _TopBar(
-                onTrack: _track, onCart: _openCart, itemCount: itemCount)),
+                onTrack: _track,
+                onCart: _openCart,
+                itemCount: itemCount,
+                onDarkModeChanged: widget.onDarkModeChanged)),
         SliverToBoxAdapter(child: _HeroBanner(onBrowse: () {
           _scrollController.animateTo(300,
               duration: const Duration(milliseconds: 450),
@@ -355,16 +359,17 @@ class _HomePageState extends State<HomePage> {
               child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1250),
                   child: Row(children: [
-                    const Icon(Icons.local_fire_department_rounded,
-                        color: _ember, size: 20),
+                    Icon(Icons.local_fire_department_rounded,
+                        color: context.colors.primary, size: 20),
                     const SizedBox(width: 8),
                     Expanded(
                         child: Text(
                             apiAvailable == true
                                 ? 'Cardápio atualizado'
                                 : 'Feito na brasa. Entregue com carinho.',
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w700, color: _ink))),
+                            style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: context.colors.onSurface))),
                   ]))),
         )),
         SliverToBoxAdapter(
@@ -464,8 +469,6 @@ class _HomePageState extends State<HomePage> {
                         child: FilledButton.icon(
                           onPressed: _openCart,
                           style: FilledButton.styleFrom(
-                              backgroundColor: _ember,
-                              foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 17),
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(18))),
@@ -482,14 +485,20 @@ class _HomePageState extends State<HomePage> {
 }
 
 class _TopBar extends StatelessWidget {
-  const _TopBar(
-      {required this.onTrack, required this.onCart, required this.itemCount});
+  const _TopBar({
+    required this.onTrack,
+    required this.onCart,
+    required this.itemCount,
+    required this.onDarkModeChanged,
+  });
+  final ValueChanged<bool> onDarkModeChanged;
   final VoidCallback onTrack;
   final VoidCallback onCart;
   final int itemCount;
   @override
   Widget build(BuildContext context) {
     final compact = MediaQuery.sizeOf(context).width < 650;
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return SafeArea(
         child: Center(
             child: ConstrainedBox(
@@ -501,38 +510,51 @@ class _TopBar extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                    color: _ember, borderRadius: BorderRadius.circular(14)),
+                    color: AppTheme.ember,
+                    borderRadius: BorderRadius.circular(14)),
                 child: const Icon(Icons.local_fire_department_rounded,
                     color: Colors.white, size: 28)),
             const SizedBox(width: 9),
-            Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+            Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                   Text('BRASA & PONTO',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                          color: _ink,
+                          color: context.colors.onSurface,
                           fontSize: 16,
                           letterSpacing: .6,
                           fontWeight: FontWeight.w900)),
                   Text('BURGER • DELIVERY',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                          color: _muted,
+                          color: context.colors.onSurfaceVariant,
                           fontSize: 8,
                           letterSpacing: 1.3,
                           fontWeight: FontWeight.w700)),
-                ]),
-            const Spacer(),
+                ])),
+            IconButton(
+                onPressed: () => onDarkModeChanged(!dark),
+                tooltip: dark ? 'Ativar modo claro' : 'Ativar modo escuro',
+                isSelected: dark,
+                icon: const Icon(Icons.dark_mode_outlined),
+                selectedIcon: const Icon(Icons.light_mode_outlined)),
             if (compact)
               IconButton(
                   onPressed: onTrack,
                   tooltip: 'Acompanhar pedido',
-                  icon: const Icon(Icons.route_outlined, color: _ink))
+                  icon: Icon(Icons.route_outlined,
+                      color: context.colors.onSurface))
             else
               TextButton.icon(
                   onPressed: onTrack,
                   icon: const Icon(Icons.route_outlined, size: 18),
                   label: const Text('Acompanhar pedido'),
-                  style: TextButton.styleFrom(foregroundColor: _ink)),
+                  style: TextButton.styleFrom(
+                      foregroundColor: context.colors.onSurface)),
             const SizedBox(width: 4),
             if (compact)
               IconButton(
@@ -541,16 +563,16 @@ class _TopBar extends StatelessWidget {
                   icon: Badge(
                       isLabelVisible: itemCount > 0,
                       label: Text('$itemCount'),
-                      child: const Icon(Icons.shopping_bag_outlined,
-                          color: _ember)))
+                      child: Icon(Icons.shopping_bag_outlined,
+                          color: context.colors.primary)))
             else
               OutlinedButton.icon(
                   onPressed: onCart,
                   icon: const Icon(Icons.shopping_bag_outlined, size: 18),
                   label: Text('Sacola${itemCount > 0 ? ' ($itemCount)' : ''}'),
                   style: OutlinedButton.styleFrom(
-                      foregroundColor: _ember,
-                      side: const BorderSide(color: _ember),
+                      foregroundColor: context.colors.primary,
+                      side: BorderSide(color: context.colors.primary),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(13)))),
           ])),
@@ -571,25 +593,26 @@ class _HeroBanner extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: 1250),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(28),
-          child: SizedBox(
-              height: 310,
-              width: double.infinity,
-              child: Stack(fit: StackFit.expand, children: [
-                _FoodImage(
-                    url:
-                        'https://images.unsplash.com/photo-1550547660-d9450f859349?w=1800&q=90',
-                    icon: Icons.lunch_dining,
-                    radius: 0),
-                DecoratedBox(
-                    decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                            colors: [
-                      _ink.withValues(alpha: .98),
-                      _ink.withValues(alpha: .84),
-                      _ink.withValues(alpha: .15)
-                    ]))),
+          child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 310),
+              child: Stack(alignment: Alignment.centerLeft, children: [
+                Positioned.fill(
+                    child: _FoodImage(
+                        url:
+                            'https://images.unsplash.com/photo-1550547660-d9450f859349?w=1800&q=90',
+                        icon: Icons.lunch_dining,
+                        radius: 0)),
+                Positioned.fill(
+                    child: DecoratedBox(
+                        decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                colors: [
+                      AppTheme.charcoal.withValues(alpha: .98),
+                      AppTheme.charcoal.withValues(alpha: .84),
+                      AppTheme.charcoal.withValues(alpha: .15)
+                    ])))),
                 Padding(
                     padding: const EdgeInsets.all(30),
                     child: Row(children: [
@@ -603,12 +626,12 @@ class _HeroBanner extends StatelessWidget {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 11, vertical: 6),
                                     decoration: BoxDecoration(
-                                        color: _gold,
+                                        color: AppTheme.gold,
                                         borderRadius:
                                             BorderRadius.circular(20)),
                                     child: const Text('A FOME CHAMOU?',
                                         style: TextStyle(
-                                            color: _ink,
+                                            color: AppTheme.charcoal,
                                             fontSize: 10,
                                             fontWeight: FontWeight.w900,
                                             letterSpacing: 1.1))),
@@ -630,7 +653,7 @@ class _HeroBanner extends StatelessWidget {
                                 FilledButton(
                                     onPressed: onBrowse,
                                     style: FilledButton.styleFrom(
-                                        backgroundColor: _ember,
+                                        backgroundColor: AppTheme.ember,
                                         foregroundColor: Colors.white,
                                         padding: const EdgeInsets.symmetric(
                                             horizontal: 20, vertical: 14)),
@@ -649,7 +672,7 @@ class _HeroBanner extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 13, vertical: 9),
                             decoration: BoxDecoration(
-                                color: _ember,
+                                color: AppTheme.ember,
                                 borderRadius: BorderRadius.circular(12),
                                 boxShadow: const [
                                   BoxShadow(
@@ -685,10 +708,11 @@ class _SearchAndCategories extends StatelessWidget {
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         TextField(
             onChanged: onSearch,
-            decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search, color: _ember),
+            decoration: InputDecoration(
+                prefixIcon: Icon(Icons.search, color: context.colors.primary),
                 hintText: 'Encontre seu burger, combo ou sobremesa...',
-                suffixIcon: Icon(Icons.tune_rounded, color: _muted))),
+                suffixIcon: Icon(Icons.tune_rounded,
+                    color: context.colors.onSurfaceVariant))),
         const SizedBox(height: 17),
         SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -700,14 +724,18 @@ class _SearchAndCategories extends StatelessWidget {
                             label: Text(category),
                             selected: selected == category,
                             onSelected: (_) => onCategory(category),
-                            selectedColor: _ink,
+                            selectedColor: context.colors.inverseSurface,
+                            checkmarkColor: context.colors.onInverseSurface,
                             labelStyle: TextStyle(
-                                color:
-                                    selected == category ? Colors.white : _ink,
+                                color: selected == category
+                                    ? context.colors.onInverseSurface
+                                    : context.colors.onSurface,
                                 fontWeight: FontWeight.w700),
-                            backgroundColor: Colors.white,
+                            backgroundColor: context.colors.surfaceContainer,
                             side: BorderSide(
-                                color: selected == category ? _ink : _line),
+                                color: selected == category
+                                    ? context.colors.inverseSurface
+                                    : context.colors.outlineVariant),
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 8),
                           ),
@@ -727,18 +755,20 @@ class _SectionHeading extends StatelessWidget {
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(title,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 27,
                   fontWeight: FontWeight.w900,
-                  color: _ink,
+                  color: context.colors.onSurface,
                   letterSpacing: -.8)),
           const SizedBox(height: 4),
-          Text(subtitle, style: const TextStyle(fontSize: 13, color: _muted)),
+          Text(subtitle,
+              style: TextStyle(
+                  fontSize: 13, color: context.colors.onSurfaceVariant)),
         ])),
         if (MediaQuery.sizeOf(context).width > 650)
-          const Text('QUAL VAI SER HOJE?',
+          Text('QUAL VAI SER HOJE?',
               style: TextStyle(
-                  color: _ember,
+                  color: context.colors.primary,
                   fontSize: 10,
                   letterSpacing: 1.2,
                   fontWeight: FontWeight.w900)),
@@ -758,12 +788,12 @@ class _ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.colors.surfaceContainer,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: _line),
+            border: Border.all(color: context.colors.outlineVariant),
             boxShadow: [
               BoxShadow(
-                  color: _ink.withValues(alpha: .035),
+                  color: context.colors.shadow.withValues(alpha: .035),
                   blurRadius: 15,
                   offset: const Offset(0, 7))
             ]),
@@ -782,18 +812,19 @@ class _ProductCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                              color: _gold,
+                              color: AppTheme.gold,
                               borderRadius: BorderRadius.circular(8)),
                           child: Text(product.badge!,
                               style: const TextStyle(
-                                  color: _ink,
+                                  color: AppTheme.charcoal,
                                   fontSize: 10,
                                   fontWeight: FontWeight.w900)))),
                 Positioned(
                     right: 10,
                     top: 10,
                     child: Material(
-                        color: Colors.white.withValues(alpha: .93),
+                        color: context.colors.surfaceContainer
+                            .withValues(alpha: .93),
                         shape: const CircleBorder(),
                         child: IconButton(
                             onPressed: onFavorite,
@@ -801,7 +832,9 @@ class _ProductCard extends StatelessWidget {
                                 favorite
                                     ? Icons.favorite
                                     : Icons.favorite_border,
-                                color: favorite ? _ember : _ink,
+                                color: favorite
+                                    ? context.colors.primary
+                                    : context.colors.onSurface,
                                 size: 18),
                             tooltip: 'Favoritar'))),
               ])),
@@ -814,24 +847,24 @@ class _ProductCard extends StatelessWidget {
                         Text(product.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontWeight: FontWeight.w900,
                                 fontSize: 16,
-                                color: _ink)),
+                                color: context.colors.onSurface)),
                         const SizedBox(height: 5),
                         Expanded(
                             child: Text(product.description,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    color: _muted,
+                                style: TextStyle(
+                                    color: context.colors.onSurfaceVariant,
                                     fontSize: 11.5,
                                     height: 1.35))),
                         Row(children: [
                           Expanded(
                               child: Text(money(product.price),
-                                  style: const TextStyle(
-                                      color: _ember,
+                                  style: TextStyle(
+                                      color: context.colors.primary,
                                       fontWeight: FontWeight.w900,
                                       fontSize: 17))),
                           FilledButton.icon(
@@ -839,8 +872,10 @@ class _ProductCard extends StatelessWidget {
                               icon: const Icon(Icons.add, size: 17),
                               label: const Text('Personalizar'),
                               style: FilledButton.styleFrom(
-                                  backgroundColor: _ink,
-                                  foregroundColor: Colors.white,
+                                  backgroundColor:
+                                      context.colors.inverseSurface,
+                                  foregroundColor:
+                                      context.colors.onInverseSurface,
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 12, vertical: 11),
                                   textStyle: const TextStyle(
@@ -889,8 +924,8 @@ class _FoodImage extends StatelessWidget {
           child: Image.network(url,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => Container(
-                  color: const Color(0xFFE9D9C8),
-                  child: Icon(icon, size: 58, color: _ember))),
+                  color: context.colors.surfaceContainerHighest,
+                  child: Icon(icon, size: 58, color: context.colors.primary))),
         ),
       );
 }
@@ -901,7 +936,7 @@ class _BenefitsStrip extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 19),
         decoration: BoxDecoration(
-            color: const Color(0xFFFFE9D7),
+            color: context.colors.secondaryContainer,
             borderRadius: BorderRadius.circular(18)),
         child: Wrap(
             alignment: WrapAlignment.spaceAround,
@@ -937,15 +972,22 @@ class _Benefit extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-                color: Colors.white, borderRadius: BorderRadius.circular(13)),
-            child: Icon(icon, color: _ember)),
+                color: context.colors.surfaceContainer,
+                borderRadius: BorderRadius.circular(13)),
+            child: Icon(icon, color: context.colors.primary)),
         const SizedBox(width: 10),
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Flexible(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(title,
-              style: const TextStyle(
-                  color: _ink, fontWeight: FontWeight.w800, fontSize: 12)),
-          Text(subtitle, style: const TextStyle(color: _muted, fontSize: 10))
-        ]),
+              style: TextStyle(
+                  color: context.colors.onSurface,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12)),
+          Text(subtitle,
+              style: TextStyle(
+                  color: context.colors.onSurfaceVariant, fontSize: 10))
+        ])),
       ]);
 }
 
@@ -953,7 +995,7 @@ class _Footer extends StatelessWidget {
   const _Footer();
   @override
   Widget build(BuildContext context) => Container(
-        color: _ink,
+        color: AppTheme.charcoal,
         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
         child: Center(
             child: ConstrainedBox(
@@ -986,7 +1028,7 @@ class _Footer extends StatelessWidget {
                             children: [
                               Text('PRECISA DE AJUDA?',
                                   style: TextStyle(
-                                      color: _gold,
+                                      color: AppTheme.gold,
                                       fontWeight: FontWeight.w900,
                                       fontSize: 10,
                                       letterSpacing: 1)),
@@ -1011,10 +1053,14 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) =>
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(title,
-            style: const TextStyle(
-                fontWeight: FontWeight.w900, color: _ink, fontSize: 15)),
+            style: TextStyle(
+                fontWeight: FontWeight.w900,
+                color: context.colors.onSurface,
+                fontSize: 15)),
         const SizedBox(height: 3),
-        Text(subtitle, style: const TextStyle(color: _muted, fontSize: 11)),
+        Text(subtitle,
+            style: TextStyle(
+                color: context.colors.onSurfaceVariant, fontSize: 11)),
       ]);
 }
 
@@ -1025,7 +1071,7 @@ class _QuantityControl extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         decoration: BoxDecoration(
-            color: const Color(0xFFF4EDE5),
+            color: context.colors.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(12)),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           IconButton(
@@ -1069,8 +1115,8 @@ class _CartSheet extends StatelessWidget {
         minChildSize: .55,
         maxChildSize: .95,
         builder: (context, scrollController) => Container(
-          decoration: const BoxDecoration(
-              color: Color(0xFFFFFCF7),
+          decoration: BoxDecoration(
+              color: context.colors.surfaceContainerLow,
               borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
           child: Column(children: [
             const SizedBox(height: 10),
@@ -1078,18 +1124,20 @@ class _CartSheet extends StatelessWidget {
                 width: 42,
                 height: 4,
                 decoration: BoxDecoration(
-                    color: _line, borderRadius: BorderRadius.circular(5))),
+                    color: context.colors.outlineVariant,
+                    borderRadius: BorderRadius.circular(5))),
             Padding(
                 padding: const EdgeInsets.fromLTRB(22, 17, 22, 12),
                 child: Row(children: [
-                  const Expanded(
+                  Expanded(
                       child: Text('Sua sacola',
                           style: TextStyle(
                               fontSize: 23,
                               fontWeight: FontWeight.w900,
-                              color: _ink))),
+                              color: context.colors.onSurface))),
                   Text('${cart.length} item(ns)',
-                      style: const TextStyle(color: _muted, fontSize: 12))
+                      style: TextStyle(
+                          color: context.colors.onSurfaceVariant, fontSize: 12))
                 ])),
             Align(
               alignment: Alignment.centerLeft,
@@ -1110,8 +1158,9 @@ class _CartSheet extends StatelessWidget {
                                   margin: const EdgeInsets.only(bottom: 12),
                                   padding: const EdgeInsets.all(13),
                                   decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      border: Border.all(color: _line),
+                                      color: context.colors.surfaceContainer,
+                                      border: Border.all(
+                                          color: context.colors.outlineVariant),
                                       borderRadius: BorderRadius.circular(15)),
                                   child: Row(children: [
                                     ClipRRect(
@@ -1130,20 +1179,22 @@ class _CartSheet extends StatelessWidget {
                                                 CrossAxisAlignment.start,
                                             children: [
                                           Text(line.product.name,
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                   fontWeight: FontWeight.w800,
-                                                  color: _ink)),
+                                                  color: context
+                                                      .colors.onSurface)),
                                           if (line.extras.isNotEmpty)
                                             Text(
                                                 '+ ${line.extras.map((e) => e.name).join(', ')}',
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(
-                                                    color: _muted,
+                                                style: TextStyle(
+                                                    color: context.colors
+                                                        .onSurfaceVariant,
                                                     fontSize: 10)),
                                           Text(money(line.total),
-                                              style: const TextStyle(
-                                                  color: _ember,
+                                              style: TextStyle(
+                                                  color: context.colors.primary,
                                                   fontWeight: FontWeight.w900,
                                                   fontSize: 13)),
                                         ])),
@@ -1154,10 +1205,11 @@ class _CartSheet extends StatelessWidget {
                                               line, v - line.quantity)),
                                       TextButton(
                                           onPressed: () => onRemove(line),
-                                          child: const Text('Remover',
+                                          child: Text('Remover',
                                               style: TextStyle(
                                                   fontSize: 10,
-                                                  color: _muted))),
+                                                  color: context.colors
+                                                      .onSurfaceVariant))),
                                     ]),
                                   ]),
                                 )),
@@ -1165,9 +1217,10 @@ class _CartSheet extends StatelessWidget {
             if (cart.isNotEmpty)
               Container(
                 padding: const EdgeInsets.fromLTRB(22, 12, 22, 20),
-                decoration: const BoxDecoration(
-                    color: Colors.white,
-                    border: Border(top: BorderSide(color: _line))),
+                decoration: BoxDecoration(
+                    color: context.colors.surfaceContainer,
+                    border: Border(
+                        top: BorderSide(color: context.colors.outlineVariant))),
                 child: Column(children: [
                   if (coupons.isNotEmpty)
                     DropdownButton<Coupon>(
@@ -1192,7 +1245,7 @@ class _CartSheet extends StatelessWidget {
                     _PriceRow(
                         label: 'Desconto ${coupon?.code ?? ''}',
                         value: '- ${money(discount)}',
-                        color: const Color(0xFF218653)),
+                        color: context.colors.tertiary),
                   _PriceRow(
                       label: 'Entrega',
                       value: deliveryFee == 0 ? 'Grátis' : money(deliveryFee)),
@@ -1204,15 +1257,15 @@ class _CartSheet extends StatelessWidget {
                       child: FilledButton(
                           onPressed: onCheckout,
                           style: FilledButton.styleFrom(
-                              backgroundColor: _ember,
-                              foregroundColor: Colors.white,
                               padding:
                                   const EdgeInsets.symmetric(vertical: 16)),
                           child: const Text('Continuar para entrega',
                               style: TextStyle(fontWeight: FontWeight.w900)))),
                   const SizedBox(height: 4),
-                  const Text('Frete grátis em pedidos acima de R\$ 65,00',
-                      style: TextStyle(color: _muted, fontSize: 10)),
+                  Text('Frete grátis em pedidos acima de R\$ 65,00',
+                      style: TextStyle(
+                          color: context.colors.onSurfaceVariant,
+                          fontSize: 10)),
                 ]),
               ),
           ]),
@@ -1236,11 +1289,13 @@ class _PriceRow extends StatelessWidget {
         Expanded(
             child: Text(label,
                 style: TextStyle(
-                    color: bold ? _ink : _muted,
+                    color: bold
+                        ? context.colors.onSurface
+                        : context.colors.onSurfaceVariant,
                     fontWeight: bold ? FontWeight.w900 : FontWeight.w500))),
         Text(value,
             style: TextStyle(
-                color: color ?? _ink,
+                color: color ?? context.colors.onSurface,
                 fontWeight: bold ? FontWeight.w900 : FontWeight.w700,
                 fontSize: bold ? 17 : 13)),
       ]));
@@ -1271,17 +1326,18 @@ class _CheckoutDialogState extends State<_CheckoutDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-        backgroundColor: const Color(0xFFFFFCF7),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        title: const Text('Dados para entrega',
-            style: TextStyle(fontWeight: FontWeight.w900, color: _ink)),
+        title: Text('Dados para entrega',
+            style: TextStyle(
+                fontWeight: FontWeight.w900, color: context.colors.onSurface)),
         content: SizedBox(
             width: 440,
             child: SingleChildScrollView(
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Text(
+              Text(
                   'Preencha os dados para registrar seu pedido e acompanhar a entrega.',
-                  style: TextStyle(color: _muted, fontSize: 12)),
+                  style: TextStyle(
+                      color: context.colors.onSurfaceVariant, fontSize: 12)),
               const SizedBox(height: 16),
               TextField(
                   controller: nameController,
@@ -1315,11 +1371,13 @@ class _CheckoutDialogState extends State<_CheckoutDialog> {
                 Padding(
                     padding: const EdgeInsets.only(top: 10),
                     child: Text(error!,
-                        style: const TextStyle(color: _ember, fontSize: 12))),
+                        style: TextStyle(
+                            color: context.colors.primary, fontSize: 12))),
               const SizedBox(height: 7),
-              const Text(
+              Text(
                   'Pagamento demonstrativo: nenhum dado bancário é solicitado ou processado.',
-                  style: TextStyle(color: _muted, fontSize: 10)),
+                  style: TextStyle(
+                      color: context.colors.onSurfaceVariant, fontSize: 10)),
             ]))),
         actions: [
           TextButton(
@@ -1336,8 +1394,6 @@ class _CheckoutDialogState extends State<_CheckoutDialog> {
                 }
                 Navigator.pop(context, _CheckoutData(name, address, payment));
               },
-              style: FilledButton.styleFrom(
-                  backgroundColor: _ember, foregroundColor: Colors.white),
               child: const Text('Confirmar pedido')),
         ],
       );
@@ -1360,14 +1416,15 @@ class _TrackCodeDialogState extends State<_TrackCodeDialog> {
   @override
   Widget build(BuildContext context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Acompanhar pedido',
-            style: TextStyle(fontWeight: FontWeight.w900, color: _ink)),
+        title: Text('Acompanhar pedido',
+            style: TextStyle(
+                fontWeight: FontWeight.w900, color: context.colors.onSurface)),
         content: SizedBox(
             width: 390,
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Text(
-                  'Digite o código que apareceu após confirmar seu pedido.',
-                  style: TextStyle(color: _muted, fontSize: 12)),
+              Text('Digite o código que apareceu após confirmar seu pedido.',
+                  style: TextStyle(
+                      color: context.colors.onSurfaceVariant, fontSize: 12)),
               const SizedBox(height: 14),
               TextField(
                   controller: controller,
@@ -1385,9 +1442,7 @@ class _TrackCodeDialogState extends State<_TrackCodeDialog> {
                 final value = controller.text.trim().toUpperCase();
                 if (value.isNotEmpty) Navigator.pop(context, value);
               },
-              style: FilledButton.styleFrom(backgroundColor: _ember),
-              child:
-                  const Text('Rastrear', style: TextStyle(color: Colors.white)))
+              child: const Text('Rastrear'))
         ],
       );
 }
@@ -1453,25 +1508,26 @@ class _TrackingDialogState extends State<_TrackingDialog> {
       'Entregue'
     ];
     return AlertDialog(
-      backgroundColor: const Color(0xFFFFFCF7),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
       title: Row(children: [
-        const Expanded(
+        Expanded(
             child: Text('Rastreio do pedido',
-                style: TextStyle(fontWeight: FontWeight.w900, color: _ink))),
+                style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: context.colors.onSurface))),
         IconButton(
             onPressed: () => _refresh(),
-            icon: const Icon(Icons.refresh, color: _ember))
+            icon: Icon(Icons.refresh, color: context.colors.primary))
       ]),
       content: SizedBox(
           width: 450,
           child: loading
               ? const Padding(
                   padding: EdgeInsets.all(24),
-                  child:
-                      Center(child: CircularProgressIndicator(color: _ember)))
+                  child: Center(child: CircularProgressIndicator()))
               : error != null
-                  ? Text(error!, style: const TextStyle(color: _ember))
+                  ? Text(error!,
+                      style: TextStyle(color: context.colors.primary))
                   : Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1480,34 +1536,37 @@ class _TrackingDialogState extends State<_TrackingDialog> {
                               width: double.infinity,
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                  color: const Color(0xFFFFE9D7),
+                                  color: context.colors.secondaryContainer,
                                   borderRadius: BorderRadius.circular(13)),
                               child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('CÓDIGO DO PEDIDO',
+                                    Text('CÓDIGO DO PEDIDO',
                                         style: TextStyle(
-                                            color: _muted,
+                                            color:
+                                                context.colors.onSurfaceVariant,
                                             fontSize: 9,
                                             letterSpacing: 1,
                                             fontWeight: FontWeight.w900)),
                                     const SizedBox(height: 3),
                                     Text('${order!['id']}',
-                                        style: const TextStyle(
-                                            color: _ink,
+                                        style: TextStyle(
+                                            color: context.colors.onSurface,
                                             fontSize: 19,
                                             fontWeight: FontWeight.w900,
                                             letterSpacing: 1)),
                                     const SizedBox(height: 5),
                                     Text('${order!['status']}',
-                                        style: const TextStyle(
-                                            color: _ember,
+                                        style: TextStyle(
+                                            color: context.colors.primary,
                                             fontSize: 13,
                                             fontWeight: FontWeight.w800)),
                                     Text(
                                         'Previsão estimada: ${order!['etaMinutes']} min',
-                                        style: const TextStyle(
-                                            color: _muted, fontSize: 11)),
+                                        style: TextStyle(
+                                            color:
+                                                context.colors.onSurfaceVariant,
+                                            fontSize: 11)),
                                   ])),
                           const SizedBox(height: 18),
                           ...List.generate(
@@ -1522,8 +1581,9 @@ class _TrackingDialogState extends State<_TrackingDialog> {
                                               height: 25,
                                               decoration: BoxDecoration(
                                                   color: index <= statusIndex
-                                                      ? _ember
-                                                      : const Color(0xFFE9DED4),
+                                                      ? context.colors.primary
+                                                      : context.colors
+                                                          .surfaceContainerHigh,
                                                   shape: BoxShape.circle),
                                               child: Icon(
                                                   index < statusIndex
@@ -1531,15 +1591,17 @@ class _TrackingDialogState extends State<_TrackingDialog> {
                                                       : _stepIcon(index),
                                                   size: 14,
                                                   color: index <= statusIndex
-                                                      ? Colors.white
-                                                      : _muted)),
+                                                      ? context.colors.onPrimary
+                                                      : context.colors
+                                                          .onSurfaceVariant)),
                                           if (index != steps.length - 1)
                                             Container(
                                                 width: 2,
                                                 height: 25,
                                                 color: index < statusIndex
-                                                    ? _ember
-                                                    : _line),
+                                                    ? context.colors.primary
+                                                    : context
+                                                        .colors.outlineVariant),
                                         ]),
                                         const SizedBox(width: 12),
                                         Padding(
@@ -1548,8 +1610,10 @@ class _TrackingDialogState extends State<_TrackingDialog> {
                                             child: Text(steps[index],
                                                 style: TextStyle(
                                                     color: index <= statusIndex
-                                                        ? _ink
-                                                        : _muted,
+                                                        ? context
+                                                            .colors.onSurface
+                                                        : context.colors
+                                                            .onSurfaceVariant,
                                                     fontWeight: index ==
                                                             statusIndex
                                                         ? FontWeight.w900
@@ -1560,12 +1624,15 @@ class _TrackingDialogState extends State<_TrackingDialog> {
                             Text('Entrega em: $address',
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    color: _muted, fontSize: 11)),
+                                style: TextStyle(
+                                    color: context.colors.onSurfaceVariant,
+                                    fontSize: 11)),
                           const SizedBox(height: 8),
-                          const Text(
+                          Text(
                               'Atualização automática a cada 8 segundos (modo demonstração).',
-                              style: TextStyle(color: _muted, fontSize: 10)),
+                              style: TextStyle(
+                                  color: context.colors.onSurfaceVariant,
+                                  fontSize: 10)),
                         ])),
       actions: [
         TextButton(
