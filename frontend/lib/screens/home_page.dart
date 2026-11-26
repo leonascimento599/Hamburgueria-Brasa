@@ -456,6 +456,7 @@ class _HomePageState extends State<HomePage> {
           : SafeArea(
               minimum: const EdgeInsets.fromLTRB(14, 8, 14, 12),
               child: Center(
+                  heightFactor: 1,
                   child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 600),
                       child: SizedBox(
@@ -1090,6 +1091,14 @@ class _CartSheet extends StatelessWidget {
                   Text('${cart.length} item(ns)',
                       style: const TextStyle(color: _muted, fontSize: 12))
                 ])),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('Continuar comprando'),
+              ),
+            ),
             Expanded(
                 child: cart.isEmpty
                     ? const Center(child: Text('Sua sacola está vazia.'))
