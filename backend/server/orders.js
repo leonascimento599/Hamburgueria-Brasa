@@ -60,7 +60,7 @@ export function calculateOrder(input, menu) {
   const discount = Math.round(subtotal * discountPercent / 100);
   const deliveryFee = subtotal >= 6500 ? 0 : 690;
   return {
-    id: 'BP-' + randomBytes(8).toString('hex').toUpperCase(),
+    id: 'BP-' + randomBytes(3).toString('hex').toUpperCase(),
     customerName: customerName.trim(),
     address: address.trim(),
     paymentMethod,
